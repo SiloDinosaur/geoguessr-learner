@@ -15,7 +15,9 @@ const countries: GeoJsonFeatureCollection = {
 
 describe("Street View country filtering", () => {
   it("marks official-coverage countries as available", () => {
-    expect(STREET_VIEW_COUNTRY_IDS.has("BRA")).toBe(true);
+    for (const countryId of ["BRA", "LVA", "LTU", "SVK", "SVN"]) {
+      expect(STREET_VIEW_COUNTRY_IDS.has(countryId)).toBe(true);
+    }
     expect(STREET_VIEW_COUNTRY_IDS.has("VEN")).toBe(false);
   });
 

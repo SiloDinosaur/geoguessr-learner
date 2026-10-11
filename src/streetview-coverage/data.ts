@@ -18,10 +18,10 @@ export const STREET_VIEW_COUNTRY_IDS = new Set([
   "BWA", "CAN", "CHE", "CHL", "COL", "CRI", "CUW", "CYP", "CZE", "DEU", "DNK", "DOM", "ECU", "ESP",
   "EST", "FIN", "FRA", "FRO", "GBR", "GEO", "GHA", "GIB", "GRC", "GRL", "GTM", "GUM", "HKG", "HRV",
   "HUN", "IDN", "IMN", "IND", "IRL", "ISL", "ISR", "ITA", "JEY", "JOR", "JPN", "KAZ", "KEN", "KGZ",
-  "KHM", "KOR", "LAO", "LBN", "LIE", "LKA", "LSO", "LUX", "MAC", "MCO", "MDG", "MEX", "MKD", "MLT",
+  "KHM", "KOR", "LAO", "LBN", "LIE", "LKA", "LSO", "LTU", "LUX", "LVA", "MAC", "MCO", "MDG", "MEX", "MKD", "MLT",
   "MNE", "MNG", "MNP", "MYS", "NAM", "NGA", "NLD", "NOR", "NPL", "NZL", "OMN", "PAN", "PER", "PHL",
   "POL", "PRI", "PRT", "PRY", "QAT", "ROU", "RUS", "RWA", "SEN", "SGP", "SMR", "SRB", "STP",
-  "SWE", "SWZ", "THA", "TUN", "TUR", "TWN", "UGA", "UKR", "URY", "USA", "VIR", "VNM", "ZAF",
+  "SVK", "SVN", "SWE", "SWZ", "THA", "TUN", "TUR", "TWN", "UGA", "UKR", "URY", "USA", "VIR", "VNM", "ZAF",
 ]);
 
 /**
