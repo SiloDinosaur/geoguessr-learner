@@ -19,11 +19,15 @@ GeoGuessr guessing map is available, the overlay adds:
 - a label for each area code at zoom level 5 or closer;
 - automatic DDD visibility when the map is centred on Brazil at zoom level 4 or closer.
 - a default-on grey tint over countries without official Google Street View coverage.
+- a bottom-left `L / Off / R` traffic-side control. Selecting `L` greys countries that drive on the right; selecting `R` greys countries that drive on the left.
 
 The Street View coverage tint has no control and is always displayed. Country
 boundaries are fetched once per page load from
 [world.geo.json](https://github.com/johan/world.geo.json); coverage is based
 on GeoGuessr's Explorer catalogue of official Google Street View countries.
+
+The traffic-side filter is off by default and fetches its country boundaries
+only after a traffic side is selected.
 
 The data is fetched once per page load from the source GeoJSON URL configured
 in [data.ts](src/brazil-ddd/data.ts).
@@ -33,4 +37,5 @@ in [data.ts](src/brazil-ddd/data.ts).
 - `src/brazil-ddd/geometry.ts`: typed GeoJSON parsing, DDD detection, and label placement.
 - `src/brazil-ddd/overlay.ts`: Google Maps layer, labels, controls, lifecycle handling.
 - `src/streetview-coverage/`: country filtering and default-on grey coverage layer.
+- `src/traffic-side/`: left/right traffic data, filtering, and the map control.
 - `tests/geometry.test.ts`: parser and geometry tests.
