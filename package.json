@@ -1,0 +1,20 @@
+{
+  "name": "geoguessr-brazil-ddd-overlay",
+  "version": "1.0.3",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.0",
+    "vite-plugin-monkey": "^7.0.1",
+    "vitest": "^3.2.4"
+  }
+}
