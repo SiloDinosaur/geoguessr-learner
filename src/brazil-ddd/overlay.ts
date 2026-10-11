@@ -17,8 +17,13 @@ declare const unsafeWindow: Window & { google?: GoogleMapsApi };
 type GoogleMap = {
   getDiv(): HTMLElement;
   getZoom(): number;
-  getCenter(): unknown;
+  getCenter(): GoogleLatLng | null;
   getBounds(): unknown;
+};
+
+type GoogleLatLng = {
+  lat(): number;
+  lng(): number;
 };
 
 type DataFeature = {
@@ -61,19 +66,23 @@ type GoogleMapsApi = {
 };
 
 type FoundMap = { map: GoogleMap; element: HTMLElement };
-type Controls = {
-  box: HTMLDivElement;
-  toggle: HTMLButtonElement;
-  reposition: () => void;
-  destroy: () => void;
-};
 type ActiveOverlay = {
   map: GoogleMap;
-  controls: Controls;
   layer: DataLayer | null;
   labels: OverlayView | null;
+  visible: boolean | null;
+  loading: boolean;
   gone: boolean;
+  syncVisibility?: () => void;
 };
+
+const BRAZIL_VIEW = {
+  north: 5.5,
+  south: -34.5,
+  west: -74.5,
+  east: -34.5,
+  minZoom: 4,
+} as const;
 
 function googleApi(): GoogleMapsApi | undefined {
   const scriptWindow: Window & { google?: GoogleMapsApi } =
@@ -125,43 +134,20 @@ function findGuessMap(): FoundMap | null {
   return null;
 }
 
-function createControls(element: HTMLElement): Controls {
-  const box = document.createElement("div");
-  box.style.cssText =
-    "position:fixed;z-index:2147483647;top:0;left:0;display:flex;gap:7px;" +
-    "align-items:center;background:#151a25ee;color:white;font:600 12px Arial,sans-serif;" +
-    "padding:7px 9px;border-radius:8px;box-shadow:0 2px 10px #0005;pointer-events:auto;visibility:hidden;";
+export function isBrazilFocusedView(map: Pick<GoogleMap, "getCenter" | "getZoom">): boolean {
+  const center = map.getCenter();
+  if (!center || map.getZoom() < BRAZIL_VIEW.minZoom) return false;
 
-  const toggle = document.createElement("button");
-  toggle.type = "button";
-  toggle.style.cssText =
-    "border:0;background:#e1eee9;color:#142321;border-radius:5px;padding:4px 6px;" +
-    "font:inherit;cursor:pointer;white-space:nowrap;";
-
-  box.append(toggle);
-  document.body.appendChild(box);
-
-  const reposition = () => {
-    const mapBounds = element.getBoundingClientRect();
-    box.style.left = `${Math.max(8, mapBounds.left)}px`;
-    box.style.top = `${Math.max(8, mapBounds.top - box.offsetHeight - 8)}px`;
-  };
-  const resizeObserver = new ResizeObserver(reposition);
-  resizeObserver.observe(element);
-  window.addEventListener("resize", reposition, { passive: true });
-  reposition();
-  box.style.visibility = "visible";
-
-  return {
-    box,
-    toggle,
-    reposition,
-    destroy: () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", reposition);
-      box.remove();
-    },
-  };
+  const lat = center.lat();
+  const lng = center.lng();
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= BRAZIL_VIEW.south &&
+    lat <= BRAZIL_VIEW.north &&
+    lng >= BRAZIL_VIEW.west &&
+    lng <= BRAZIL_VIEW.east
+  );
 }
 
 function createLabels(map: GoogleMap, points: Map<string, LabelPoint>): OverlayView {
@@ -240,7 +226,6 @@ function requestData(): Promise<NormalizedDddData> {
 export function startBrazilDddOverlay(): void {
   let active: ActiveOverlay | null = null;
   let dataPromise: Promise<NormalizedDddData> | null = null;
-  let enabled = true;
   const opacity = 0.28;
 
   const loadData = () => {
@@ -264,54 +249,63 @@ export function startBrazilDddOverlay(): void {
     };
   };
 
-  const attach = async ({ map, element }: FoundMap) => {
-    const controls = createControls(element);
-    const instance: ActiveOverlay = { map, controls, layer: null, labels: null, gone: false };
+  const attach = ({ map }: FoundMap): void => {
+    const instance: ActiveOverlay = {
+      map,
+      layer: null,
+      labels: null,
+      visible: null,
+      loading: false,
+      gone: false,
+    };
     active = instance;
 
-    const renderButton = (message?: string) => {
-      controls.toggle.textContent = message ?? (enabled ? "Brazil codes: ON" : "Brazil codes: OFF");
+    const addLayer = async () => {
+      instance.loading = true;
+      try {
+        const data = await loadData();
+        if (instance.gone || active !== instance) return;
+
+        const google = googleApi();
+        if (!google?.maps.Data || !google.maps.OverlayView) throw new Error("Google Maps is unavailable");
+        instance.layer = new google.maps.Data({ map: instance.visible ? map : null });
+        instance.layer.addGeoJson(data.features);
+        instance.layer.setStyle(styleForDdd);
+        instance.labels = createLabels(map, data.labelPoints);
+        if (!instance.visible) instance.labels.setMap(null);
+      } catch (error) {
+        console.error("[GeoGuessr Brazil DDD]", error);
+      } finally {
+        instance.loading = false;
+      }
     };
-    renderButton("Brazil codes: loading…");
 
-    controls.toggle.addEventListener("click", () => {
-      enabled = !enabled;
-      instance.layer?.setMap(enabled ? map : null);
-      instance.labels?.setMap(enabled ? map : null);
-      renderButton();
-    });
-    try {
-      const data = await loadData();
-      if (instance.gone || active !== instance) return;
+    const syncVisibility = () => {
+      const visible = isBrazilFocusedView(map);
+      if (visible === instance.visible) return;
 
-      const google = googleApi();
-      if (!google?.maps.Data || !google.maps.OverlayView) throw new Error("Google Maps is unavailable");
-      instance.layer = new google.maps.Data({ map: enabled ? map : null });
-      instance.layer.addGeoJson(data.features);
-      instance.layer.setStyle(styleForDdd);
-      instance.labels = createLabels(map, data.labelPoints);
-      if (!enabled) instance.labels.setMap(null);
-      renderButton();
-    } catch (error) {
-      console.error("[GeoGuessr Brazil DDD]", error);
-      controls.toggle.title = error instanceof Error ? error.message : "Unable to load DDD data";
-      renderButton("Brazil codes: error");
-    }
+      instance.visible = visible;
+      instance.layer?.setMap(visible ? map : null);
+      instance.labels?.setMap(visible ? map : null);
+      if (visible && !instance.layer && !instance.loading) void addLayer();
+    };
+
+    instance.syncVisibility = syncVisibility;
+    syncVisibility();
   };
 
   const check = () => {
-    if (active && (!document.contains(active.map.getDiv()) || !document.contains(active.controls.box))) {
+    if (active && !document.contains(active.map.getDiv())) {
       active.gone = true;
       active.labels?.setMap(null);
       active.layer?.setMap(null);
-      active.controls.destroy();
       active = null;
     }
-    active?.controls.reposition();
     if (!active) {
       const found = findGuessMap();
-      if (found) void attach(found);
+      if (found) attach(found);
     }
+    active?.syncVisibility?.();
   };
 
   window.setInterval(check, 1_000);

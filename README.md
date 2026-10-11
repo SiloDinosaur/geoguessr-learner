@@ -17,7 +17,7 @@ GeoGuessr guessing map is available, the overlay adds:
 
 - colour-coded DDD boundaries;
 - a label for each area code at zoom level 5 or closer;
-- a compact toggle immediately above the map.
+- automatic DDD visibility when the map is centred on Brazil at zoom level 4 or closer.
 - a default-on grey tint over countries without official Google Street View coverage.
 
 The Street View coverage tint has no control and is always displayed. Country
